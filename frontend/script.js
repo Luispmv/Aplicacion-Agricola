@@ -296,3 +296,249 @@ document.addEventListener('DOMContentLoaded', function() {
     btnRestablecerFiltros.addEventListener('click', restablecerFiltros);
   }
 });
+
+// Variables para el buffer dinámico
+let bufferMode = false;
+let selectedPoint = null;
+let bufferLayer = null;
+let bufferCircle = null;
+let elementsInBuffer = new Set();
+
+// Función para iniciar el modo buffer
+function startBufferMode() {
+  bufferMode = true;
+  document.getElementById('start-buffer').disabled = true;
+  document.getElementById('apply-buffer').disabled = true;
+  map.getContainer().style.cursor = 'crosshair';
+  
+  // Deshabilitar el movimiento del mapa
+  map.dragging.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.scrollWheelZoom.disable();
+  map.boxZoom.disable();
+  map.keyboard.disable();
+  if (map.tap) map.tap.disable();
+}
+
+// Función para crear o actualizar el buffer
+function updateBuffer(latlng) {
+  const radius = parseFloat(document.getElementById('buffer-radius').value);
+  
+  // Limpiar buffer anterior
+  if (bufferLayer) {
+    map.removeLayer(bufferLayer);
+  }
+  if (bufferCircle) {
+    map.removeLayer(bufferCircle);
+  }
+
+  // Crear círculo visual
+  bufferCircle = L.circle(latlng, {
+    radius: radius,
+    color: '#2196F3',
+    fillColor: '#2196F3',
+    fillOpacity: 0.2,
+    weight: 2
+  }).addTo(map);
+
+  // Crear buffer usando Turf.js
+  const point = turf.point([latlng.lng, latlng.lat]);
+  const buffered = turf.buffer(point, radius / 1000, { units: 'kilometers' });
+  
+  bufferLayer = L.geoJSON(buffered, {
+    style: {
+      color: '#2196F3',
+      weight: 2,
+      opacity: 0.8,
+      fillOpacity: 0
+    }
+  }).addTo(map);
+
+  // Habilitar botón de aplicar
+  document.getElementById('apply-buffer').disabled = false;
+  document.getElementById('clear-buffer').disabled = false;
+}
+
+// Función para encontrar elementos dentro del buffer
+function findElementsInBuffer() {
+  if (!bufferLayer) return;
+
+  elementsInBuffer.clear();
+  const bufferPolygon = bufferLayer.toGeoJSON().features[0];
+
+  // Objeto para almacenar conteos
+  const conteos = {
+    sensores: 0,
+    pozos: 0,
+    parcelas: 0,
+    'zonas-riego': 0,
+    'tipos-cultivo': 0
+  };
+
+  Object.entries(capas).forEach(([capaId, capa]) => {
+    capa.elementos.forEach(elemento => {
+      let punto;
+      if (elemento.getLatLng) {
+        // Para marcadores (puntos)
+        const latlng = elemento.getLatLng();
+        punto = turf.point([latlng.lng, latlng.lat]);
+      } else if (elemento.feature) {
+        // Para polígonos, usar el centroide
+        punto = turf.centroid(elemento.feature);
+      }
+
+      if (punto && turf.booleanPointInPolygon(punto, bufferPolygon)) {
+        elementsInBuffer.add(elemento);
+        conteos[capaId]++;
+        
+        // Resaltar elemento
+        if (elemento.setStyle) {
+          elemento.setStyle({
+            color: '#4CAF50',
+            weight: 3,
+            fillOpacity: 0.6
+          });
+        } else if (elemento.setIcon) {
+          // Crear un nuevo icono resaltado basado en el tipo de elemento
+          let emoji = '';
+          switch(capaId) {
+            case 'sensores': emoji = '📡'; break;
+            case 'pozos': emoji = '💧'; break;
+            case 'parcelas': emoji = '🌱'; break;
+            default: emoji = '📍';
+          }
+
+          elemento.setIcon(L.divIcon({
+            className: 'highlighted-icon',
+            html: `<div style="background-color: #4CAF50; width: 24px; height: 24px; border-radius: 50%; border: 3px solid yellow; display: flex; align-items: center; justify-content: center;">${emoji}</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          }));
+        }
+      }
+    });
+  });
+
+  // Actualizar contadores en la interfaz
+  Object.entries(conteos).forEach(([capaId, cantidad]) => {
+    const contador = document.getElementById(`${capaId}-count`);
+    if (contador) {
+      contador.textContent = cantidad;
+    }
+  });
+
+  // Mostrar el panel de resultados
+  document.querySelector('.buffer-results').style.display = 'block';
+
+  // Mostrar cantidad total de elementos encontrados
+  const total = elementsInBuffer.size;
+  alert(`Se encontraron ${total} elementos dentro del buffer`);
+}
+
+// Función para limpiar el buffer
+function clearBuffer() {
+  if (bufferLayer) {
+    map.removeLayer(bufferLayer);
+  }
+  if (bufferCircle) {
+    map.removeLayer(bufferCircle);
+  }
+  
+  // Restaurar estilos originales
+  elementsInBuffer.forEach(elemento => {
+    if (elemento.setStyle) {
+      elemento.setStyle({
+        color: elemento.options.originalColor || '#3388ff',
+        weight: 2,
+        fillOpacity: 0.4
+      });
+    } else if (elemento.setIcon) {
+      const originalIcon = elemento.options.icon.options.html;
+      elemento.setIcon(L.divIcon({
+        className: 'custom-icon',
+        html: originalIcon,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      }));
+    }
+  });
+
+  // Limpiar contadores
+  Object.keys(capas).forEach(capaId => {
+    const contador = document.getElementById(`${capaId}-count`);
+    if (contador) {
+      contador.textContent = '0';
+    }
+  });
+
+  // Ocultar el panel de resultados
+  document.querySelector('.buffer-results').style.display = 'none';
+
+  elementsInBuffer.clear();
+  bufferMode = false;
+  selectedPoint = null;
+  bufferLayer = null;
+  bufferCircle = null;
+  
+  // Restaurar botones y controles del mapa
+  document.getElementById('start-buffer').disabled = false;
+  document.getElementById('apply-buffer').disabled = true;
+  document.getElementById('clear-buffer').disabled = true;
+  map.getContainer().style.cursor = '';
+
+  // Habilitar el movimiento del mapa
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+  map.boxZoom.enable();
+  map.keyboard.enable();
+  if (map.tap) map.tap.enable();
+}
+
+// Eventos para el buffer
+map.on('click', function(e) {
+  if (bufferMode) {
+    selectedPoint = e.latlng;
+    updateBuffer(selectedPoint);
+  }
+});
+
+// Eventos para los botones de buffer
+document.getElementById('start-buffer').addEventListener('click', startBufferMode);
+document.getElementById('apply-buffer').addEventListener('click', findElementsInBuffer);
+document.getElementById('clear-buffer').addEventListener('click', clearBuffer);
+
+// Eventos para ajustar el radio del buffer
+document.getElementById('increase-buffer').addEventListener('click', function() {
+  const input = document.getElementById('buffer-radius');
+  input.value = Math.min(parseInt(input.value) + 10, 1000);
+  if (selectedPoint) {
+    updateBuffer(selectedPoint);
+  }
+});
+
+document.getElementById('decrease-buffer').addEventListener('click', function() {
+  const input = document.getElementById('buffer-radius');
+  input.value = Math.max(parseInt(input.value) - 10, 10);
+  if (selectedPoint) {
+    updateBuffer(selectedPoint);
+  }
+});
+
+document.getElementById('buffer-radius').addEventListener('input', function() {
+  if (selectedPoint) {
+    updateBuffer(selectedPoint);
+  }
+});
+
+// Agregar estilos para los elementos resaltados
+const highlightStyle = document.createElement('style');
+highlightStyle.textContent = `
+  .highlighted-icon {
+    transform: scale(1.2);
+    transition: transform 0.2s;
+  }
+`;
+document.head.appendChild(highlightStyle);
