@@ -195,6 +195,54 @@
           </div>
         </div>
       </div>
+
+      <!-- Zona de Intersección -->
+      <div class="control-section">
+        <h3>Zona de Intersección</h3>
+        <div class="intersection-controls" style="display: flex; flex-direction: column; gap: 15px;">
+          <div class="intersection-buttons" style="display: flex; gap: 10px;">
+            <button id="start-polygon1" class="tool-button">🟦 Dibujar Polígono 1</button>
+            <button id="start-polygon2" class="tool-button" disabled>🟥 Dibujar Polígono 2</button>
+          </div>
+          <div class="intersection-actions" style="display: flex; gap: 10px;">
+            <button id="show-layers" class="tool-button" disabled>🔍 Mostrar Capas</button>
+            <button id="clear-intersection" class="tool-button" disabled>🗑️ Limpiar</button>
+          </div>
+
+          <!-- Resultados de la Intersección -->
+          <div class="intersection-results" style="display: none; flex-direction: column; gap: 10px; padding: 15px; background-color: #f5f5f5; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0; color: #333; font-size: 16px;">Elementos en la Intersección:</h4>
+            <ul id="intersection-list" style="list-style: none; padding: 0; margin: 0;">
+              <!-- La lista de elementos se llenará dinámicamente -->
+            </ul>
+            <div class="intersection-counts" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+              <h5 style="margin: 0 0 8px 0; color: #333;">Elementos encontrados:</h5>
+              <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                  <span>📡 Sensores:</span>
+                  <span id="sensores-count" style="font-weight: bold;">0</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                  <span>💧 Pozos:</span>
+                  <span id="pozos-count" style="font-weight: bold;">0</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                  <span>🌱 Parcelas:</span>
+                  <span id="parcelas-count" style="font-weight: bold;">0</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                  <span>💦 Zonas de Riego:</span>
+                  <span id="zonas-riego-count" style="font-weight: bold;">0</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                  <span>🌾 Tipos de Cultivo:</span>
+                  <span id="tipos-cultivo-count" style="font-weight: bold;">0</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Mapa -->

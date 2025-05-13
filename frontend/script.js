@@ -828,3 +828,450 @@ function limpiarCentroide() {
 document.getElementById('cultivo-select').addEventListener('change', actualizarBotonesCentroide);
 document.getElementById('calculate-centroid').addEventListener('click', calcularCentroide);
 document.getElementById('clear-centroid').addEventListener('click', limpiarCentroide);
+
+// Variables para la zona de intersección
+let drawingPolygon = false;
+let currentPolygon = null;
+let polygon1 = null;
+let polygon2 = null;
+let startPoint = null;
+let currentSquare = null;
+let isDrawing = false;
+let intersectionLayer = null;
+
+// Función para crear un cuadrado a partir de dos puntos
+function createSquareFromPoints(start, end) {
+  // Calcular los puntos del cuadrado
+  const latDiff = end.lat - start.lat;
+  const lngDiff = end.lng - start.lng;
+  
+  // Crear un cuadrado usando las diferencias más grandes para mantener la proporción
+  const maxDiff = Math.max(Math.abs(latDiff), Math.abs(lngDiff));
+  const signLat = latDiff >= 0 ? 1 : -1;
+  const signLng = lngDiff >= 0 ? 1 : -1;
+
+  // Crear las coordenadas en sentido horario (importante para GeoJSON)
+  const coordinates = [
+    [start.lng, start.lat], // Punto inicial
+    [start.lng + signLng * maxDiff, start.lat], // Punto derecho
+    [start.lng + signLng * maxDiff, start.lat + signLat * maxDiff], // Punto diagonal
+    [start.lng, start.lat + signLat * maxDiff], // Punto superior
+    [start.lng, start.lat] // Cerrar el polígono volviendo al punto inicial
+  ];
+
+  // Crear un Feature GeoJSON válido con un array anidado de coordenadas
+  const polygon = {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coordinates]
+    }
+  };
+
+  // Verificar que el polígono sea válido
+  console.log('Polígono creado:', JSON.stringify(polygon));
+  return polygon;
+}
+
+// Función para dibujar el polígono en el mapa
+function drawPolygon(start, end, isFirstPolygon) {
+  const square = createSquareFromPoints(start, end);
+  const color = isFirstPolygon ? '#0000FF' : '#FF0000';
+  const opacity = 0.3;
+
+  // Crear la capa de Leaflet
+  const layer = L.geoJSON(square, {
+    style: {
+      color: color,
+      weight: 2,
+      fillColor: color,
+      fillOpacity: opacity
+    }
+  }).addTo(map);
+
+  // Devolver un objeto con la capa y una copia de la geometría
+  return {
+    layer: layer,
+    geometry: JSON.parse(JSON.stringify(square.geometry)) // Crear una copia limpia de la geometría
+  };
+}
+
+// Función para mostrar notificaciones al usuario
+function showStatus(message, duration = 3000) {
+  const statusDiv = document.createElement('div');
+  statusDiv.className = 'status-message';
+  statusDiv.textContent = message;
+  statusDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+  `;
+  
+  document.body.appendChild(statusDiv);
+  
+  setTimeout(() => {
+    statusDiv.remove();
+  }, duration);
+}
+
+// Función para calcular la intersección
+function calculateIntersection() {
+  if (!polygon1 || !polygon2) {
+    showStatus('Dibuja dos polígonos para verificar la intersección');
+    return;
+  }
+
+  try {
+    // Obtener las geometrías de los polígonos
+    const poly1 = turf.polygon([polygon1.geometry.coordinates[0]]);
+    const poly2 = turf.polygon([polygon2.geometry.coordinates[0]]);
+
+    // Verificar si los polígonos intersectan
+    const intersectan = turf.booleanIntersects(poly1, poly2);
+
+    if (intersectan) {
+      showStatus('¡Los polígonos intersectan! 🎯', 3000);
+      // Resaltar los polígonos
+      polygon1.layer.setStyle({
+        color: '#4CAF50',
+        weight: 3,
+        fillOpacity: 0.5
+      });
+      polygon2.layer.setStyle({
+        color: '#4CAF50',
+        weight: 3,
+        fillOpacity: 0.5
+      });
+    } else {
+      showStatus('Los polígonos no intersectan ❌', 3000);
+      // Restaurar estilos originales
+      polygon1.layer.setStyle({
+        color: '#0000FF',
+        weight: 2,
+        fillOpacity: 0.3
+      });
+      polygon2.layer.setStyle({
+        color: '#FF0000',
+        weight: 2,
+        fillOpacity: 0.3
+      });
+    }
+
+  } catch (error) {
+    console.error('Error al verificar la intersección:', error);
+    showStatus('Error al verificar la intersección', 3000);
+  }
+}
+
+// Función para mostrar las capas en la intersección
+function showLayersInIntersection() {
+  if (!currentIntersection || !currentIntersection.intersection) {
+    showStatus('No hay área válida para mostrar');
+    return;
+  }
+
+  try {
+    // Limpiar resaltados anteriores
+    clearHighlights();
+
+    // Limpiar lista anterior
+    const intersectionList = document.getElementById('intersection-list');
+    intersectionList.innerHTML = '';
+
+    // Objeto para almacenar conteos
+    const conteos = {
+      sensores: 0,
+      pozos: 0,
+      parcelas: 0,
+      'zonas-riego': 0,
+      'tipos-cultivo': 0
+    };
+
+    // Función para verificar si un punto está dentro del área de intersección
+    function isPointInIntersection(point) {
+      return turf.booleanPointInPolygon(point, currentIntersection.intersection);
+    }
+
+    // Función para verificar si un polígono intersecta con el área de intersección
+    function doesPolygonIntersect(feature) {
+      return turf.booleanIntersects(feature, currentIntersection.intersection);
+    }
+
+    // Función para procesar cada tipo de elemento
+    function processElements(capaId, elementos) {
+      elementos.forEach(elemento => {
+        if (elemento.feature) {
+          let isInside = false;
+          
+          if (elemento.getLatLng) { // Si es un punto (sensor, pozo, etc.)
+            const point = turf.point([elemento.getLatLng().lng, elemento.getLatLng().lat]);
+            isInside = isPointInIntersection(point);
+          } else { // Si es un polígono (zona de riego, cultivo, etc.)
+            isInside = doesPolygonIntersect(elemento.feature);
+          }
+
+          if (isInside) {
+            conteos[capaId]++;
+            highlightedElements.add(elemento);
+
+            // Resaltar elemento
+            if (elemento.setStyle) {
+              elemento.setStyle({
+                color: '#9c27b0',
+                weight: 3,
+                fillOpacity: 0.6
+              });
+            } else if (elemento.setIcon) {
+              const emoji = getElementEmoji(capaId);
+              elemento.setIcon(L.divIcon({
+                className: 'highlighted-icon',
+                html: `<div style="background-color: #9c27b0; width: 24px; height: 24px; border-radius: 50%; border: 3px solid yellow; display: flex; align-items: center; justify-content: center;">${emoji}</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              }));
+            }
+
+            // Agregar a la lista con animación
+            const li = document.createElement('li');
+            li.style.cssText = `
+              padding: 8px 0;
+              border-bottom: 1px solid #ddd;
+              animation: fadeIn 0.5s ease-in-out;
+            `;
+            const nombre = elemento.feature.properties.nombre || 
+                          elemento.feature.properties.cultivo || 
+                          'Sin nombre';
+            li.innerHTML = `${getElementEmoji(capaId)} ${getElementTypeName(capaId)}: ${nombre}`;
+            intersectionList.appendChild(li);
+          }
+        }
+      });
+    }
+
+    // Procesar cada tipo de capa
+    Object.entries(capas).forEach(([capaId, capa]) => {
+      if (capa && capa.elementos) {
+        processElements(capaId, capa.elementos);
+      }
+    });
+
+    // Actualizar contadores en la interfaz
+    Object.entries(conteos).forEach(([capaId, cantidad]) => {
+      const contador = document.getElementById(`${capaId}-count`);
+      if (contador) {
+        contador.textContent = cantidad;
+      }
+    });
+
+    // Mostrar resultados
+    const totalElementos = Object.values(conteos).reduce((a, b) => a + b, 0);
+    document.querySelector('.intersection-results').style.display = 'flex';
+    
+    if (totalElementos === 0) {
+      const li = document.createElement('li');
+      li.style.padding = '8px 0';
+      li.innerHTML = '⚠️ No hay elementos dentro del área de intersección';
+      intersectionList.appendChild(li);
+    } else {
+      showStatus(`Se encontraron ${totalElementos} elementos en la intersección`);
+    }
+
+  } catch (error) {
+    console.error('Error al mostrar las capas:', error);
+    showStatus('Error al mostrar las capas en el área seleccionada', 4000);
+    document.querySelector('.intersection-results').style.display = 'none';
+  }
+}
+
+// Función para obtener el emoji según el tipo de elemento
+function getElementEmoji(tipo) {
+  const emojis = {
+    'sensores': '📡',
+    'pozos': '💧',
+    'parcelas': '🌱',
+    'zonas-riego': '💦',
+    'tipos-cultivo': '🌾'
+  };
+  return emojis[tipo] || '📍';
+}
+
+// Función para obtener el nombre del tipo de elemento
+function getElementTypeName(tipo) {
+  const names = {
+    'sensores': 'Sensor',
+    'pozos': 'Pozo',
+    'parcelas': 'Parcela',
+    'zonas-riego': 'Zona de Riego',
+    'tipos-cultivo': 'Tipo de Cultivo'
+  };
+  return names[tipo] || tipo;
+}
+
+// Función para limpiar resaltados
+function clearHighlights() {
+  highlightedElements.forEach(elemento => {
+    if (elemento.setStyle) {
+      const capaId = Object.entries(capas).find(([_, capa]) => 
+        capa.elementos.includes(elemento)
+      )[0];
+      elemento.setStyle({
+        color: capas[capaId].color,
+        weight: 2,
+        fillOpacity: 0.4
+      });
+    } else if (elemento.setIcon) {
+      const capaId = Object.entries(capas).find(([_, capa]) => 
+        capa.elementos.includes(elemento)
+      )[0];
+      const emoji = getElementEmoji(capaId);
+      elemento.setIcon(L.divIcon({
+        className: 'custom-icon',
+        html: `<div style="background-color: ${capas[capaId].color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;">${emoji}</div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      }));
+    }
+  });
+  highlightedElements.clear();
+}
+
+// Función para iniciar el dibujo
+function startDrawing(polygonNumber) {
+  drawingPolygon = true;
+  currentPolygon = polygonNumber;
+  map.getContainer().style.cursor = 'crosshair';
+  
+  // Deshabilitar controles del mapa
+  map.dragging.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.scrollWheelZoom.disable();
+  map.boxZoom.disable();
+  map.keyboard.disable();
+  if (map.tap) map.tap.disable();
+
+  // Deshabilitar el botón actual
+  document.getElementById(`start-polygon${polygonNumber}`).disabled = true;
+}
+
+// Eventos del mapa para dibujo
+map.on('mousedown', function(e) {
+  if (!drawingPolygon) return;
+  
+  isDrawing = true;
+  startPoint = e.latlng;
+});
+
+map.on('mousemove', function(e) {
+  if (!isDrawing || !startPoint) return;
+
+  // Eliminar el cuadrado temporal anterior
+  if (currentSquare) {
+    map.removeLayer(currentSquare.layer);
+  }
+
+  // Dibujar nuevo cuadrado temporal
+  currentSquare = drawPolygon(startPoint, e.latlng, currentPolygon === 1);
+});
+
+map.on('mouseup', function(e) {
+  if (!isDrawing || !startPoint) return;
+
+  isDrawing = false;
+  
+  // Guardar el polígono final
+  if (currentPolygon === 1) {
+    if (polygon1) {
+      map.removeLayer(polygon1.layer);
+    }
+    polygon1 = currentSquare;
+    document.getElementById('start-polygon2').disabled = false;
+  } else {
+    if (polygon2) {
+      map.removeLayer(polygon2.layer);
+    }
+    polygon2 = currentSquare;
+    calculateIntersection();
+  }
+
+  currentSquare = null;
+  startPoint = null;
+  drawingPolygon = false;
+  map.getContainer().style.cursor = '';
+  
+  // Habilitar controles del mapa
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+  map.boxZoom.enable();
+  map.keyboard.enable();
+  if (map.tap) map.tap.enable();
+
+  document.getElementById('clear-intersection').disabled = false;
+});
+
+// Eventos para los botones
+document.getElementById('start-polygon1').addEventListener('click', function() {
+  startDrawing(1);
+});
+
+document.getElementById('start-polygon2').addEventListener('click', function() {
+  startDrawing(2);
+});
+
+document.getElementById('clear-intersection').addEventListener('click', clearIntersection);
+
+// Agregar evento para el botón de mostrar capas
+document.getElementById('show-layers').addEventListener('click', showLayersInIntersection);
+
+// Agregar estilos CSS para la animación
+const styleAnimation = document.createElement('style');
+styleAnimation.textContent = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+document.head.appendChild(styleAnimation);
+
+// Función para limpiar todo
+function clearIntersection() {
+  if (polygon1) {
+    map.removeLayer(polygon1.layer);
+    polygon1 = null;
+  }
+  if (polygon2) {
+    map.removeLayer(polygon2.layer);
+    polygon2 = null;
+  }
+
+  // Restablecer interfaz
+  document.getElementById('start-polygon1').disabled = false;
+  document.getElementById('start-polygon2').disabled = true;
+  document.getElementById('clear-intersection').disabled = true;
+  
+  // Restablecer variables
+  drawingPolygon = false;
+  currentPolygon = null;
+  startPoint = null;
+  isDrawing = false;
+  
+  // Restablecer cursor y controles del mapa
+  map.getContainer().style.cursor = '';
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+  map.boxZoom.enable();
+  map.keyboard.enable();
+  if (map.tap) map.tap.enable();
+
+  showStatus('Área limpiada', 2000);
+}
