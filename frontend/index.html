@@ -155,6 +155,46 @@
           </div>
         </div>
       </div>
+
+      <!-- Cálculo de Centroides -->
+      <div class="control-section">
+        <h3>Cálculo de Centroides</h3>
+        <div class="centroid-controls" style="display: flex; flex-direction: column; gap: 15px;">
+          <div class="centroid-item" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="cultivo-select">Seleccionar Tipo de Cultivo:</label>
+            <select id="cultivo-select" class="tool-select" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+              <option value="">Seleccione un cultivo...</option>
+              <option value="maíz">🌽 Maíz</option>
+              <option value="trigo">🌾 Trigo</option>
+              <option value="caña de azúcar">🍬 Caña de Azúcar</option>
+              <option value="frijol">🫘 Frijol</option>
+              <option value="tomate">🍅 Tomate</option>
+              <option value="aguacate">🥑 Aguacate</option>
+              <option value="uva">🍇 Uva</option>
+              <option value="limón">🍋 Limón</option>
+              <option value="sandia">🍉 Sandía</option>
+            </select>
+          </div>
+          
+          <div class="centroid-buttons" style="display: flex; gap: 10px;">
+            <button id="calculate-centroid" class="tool-button" disabled>📍 Calcular Centroide</button>
+            <button id="clear-centroid" class="tool-button" disabled>🗑️ Limpiar</button>
+          </div>
+
+          <!-- Resultados del Centroide -->
+          <div class="centroid-results" style="display: none; flex-direction: column; gap: 10px; padding: 15px; background-color: #f5f5f5; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0; color: #333; font-size: 16px;">Información del Centroide:</h4>
+            <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Cultivo:</span>
+              <span id="cultivo-info" style="font-weight: bold;">-</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Coordenadas:</span>
+              <span id="coords-info" style="font-weight: bold; color: #2196F3;">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Mapa -->

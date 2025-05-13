@@ -702,3 +702,129 @@ function limpiarMedicion() {
 // Agregar eventos a los botones
 document.getElementById('start-distance').addEventListener('click', iniciarMedicion);
 document.getElementById('clear-distance').addEventListener('click', limpiarMedicion);
+
+// Variables para centroides
+let centroideActual = null;
+let marcadorCentroide = null;
+
+// Función para habilitar/deshabilitar botones de centroide
+function actualizarBotonesCentroide() {
+  const cultivoSelect = document.getElementById('cultivo-select');
+  const calcularBtn = document.getElementById('calculate-centroid');
+  const limpiarBtn = document.getElementById('clear-centroid');
+  
+  calcularBtn.disabled = !cultivoSelect.value;
+  limpiarBtn.disabled = !centroideActual;
+}
+
+// Función para calcular el centroide
+function calcularCentroide() {
+  const cultivoSeleccionado = document.getElementById('cultivo-select').value;
+  if (!cultivoSeleccionado) return;
+
+  // Limpiar centroide anterior
+  limpiarCentroide();
+
+  // Encontrar todos los polígonos del cultivo seleccionado
+  const poligonosCultivo = capas['tipos-cultivo'].elementos.filter(elemento => 
+    elemento.feature && 
+    elemento.feature.properties.cultivo && 
+    elemento.feature.properties.cultivo.toLowerCase() === cultivoSeleccionado.toLowerCase()
+  );
+
+  if (poligonosCultivo.length === 0) {
+    alert('No se encontraron áreas para este tipo de cultivo');
+    return;
+  }
+
+  // Unir todos los polígonos del mismo cultivo
+  let unionFeature;
+  try {
+    unionFeature = poligonosCultivo.reduce((union, poligono) => {
+      const feature = poligono.feature;
+      if (!union) return feature;
+      return turf.union(union, feature);
+    }, null);
+  } catch (error) {
+    console.error('Error al unir polígonos:', error);
+    return;
+  }
+
+  // Calcular el centroide
+  const centroide = turf.centroid(unionFeature);
+  const coords = centroide.geometry.coordinates;
+
+  // Crear marcador del centroide
+  marcadorCentroide = L.circleMarker([coords[1], coords[0]], {
+    radius: 8,
+    color: 'red',
+    fillColor: '#ff4444',
+    fillOpacity: 0.7,
+    weight: 2
+  }).addTo(map);
+
+  // Crear círculo decorativo alrededor del centroide
+  centroideActual = L.circle([coords[1], coords[0]], {
+    radius: 50,
+    color: 'red',
+    fillColor: '#ff4444',
+    fillOpacity: 0.2,
+    weight: 1,
+    dashArray: '5, 10'
+  }).addTo(map);
+
+  // Actualizar panel de resultados
+  document.getElementById('cultivo-info').textContent = 
+    `${getEmojiCultivo(cultivoSeleccionado)} ${cultivoSeleccionado}`;
+  document.getElementById('coords-info').textContent = 
+    `${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`;
+  document.querySelector('.centroid-results').style.display = 'flex';
+
+  // Zoom al centroide
+  map.setView([coords[1], coords[0]], 16);
+
+  // Actualizar estado de botones
+  actualizarBotonesCentroide();
+}
+
+// Función para obtener el emoji del cultivo
+function getEmojiCultivo(cultivo) {
+  const emojis = {
+    'maíz': '🌽',
+    'trigo': '🌾',
+    'caña de azúcar': '🍬',
+    'frijol': '🫘',
+    'tomate': '🍅',
+    'aguacate': '🥑',
+    'uva': '🍇',
+    'limón': '🍋',
+    'sandia': '🍉'
+  };
+  return emojis[cultivo.toLowerCase()] || '🌱';
+}
+
+// Función para limpiar el centroide
+function limpiarCentroide() {
+  if (marcadorCentroide) {
+    map.removeLayer(marcadorCentroide);
+    marcadorCentroide = null;
+  }
+  if (centroideActual) {
+    map.removeLayer(centroideActual);
+    centroideActual = null;
+  }
+
+  // Restablecer interfaz
+  document.getElementById('cultivo-select').value = '';
+  document.getElementById('cultivo-info').textContent = '-';
+  document.getElementById('coords-info').textContent = '-';
+  document.querySelector('.centroid-results').style.display = 'none';
+
+  // Actualizar estado de botones
+  actualizarBotonesCentroide();
+}
+
+// Eventos para los controles de centroide
+document.getElementById('cultivo-select').addEventListener('change', actualizarBotonesCentroide);
+document.getElementById('calculate-centroid').addEventListener('click', calcularCentroide);
+document.getElementById('clear-centroid').addEventListener('click', limpiarCentroide);
