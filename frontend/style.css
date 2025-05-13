@@ -1,10 +1,429 @@
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+/* Estilos generales */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
+body {
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Barra lateral */
+.sidebar {
+    width: 300px;
+    background-color: #f8f9fa;
+    padding: 20px;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.sidebar-header h2 {
+    color: #343a40;
+    font-size: 1.5rem;
+}
+
+/* Secciones de control */
+.control-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.control-section h3 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+/* Búsqueda */
+.search-controls {
+    width: 100%;
+}
+
+#search-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* Control de capas */
+.layer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.layer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.layer-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.layer-item label {
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+/* Filtros */
+.filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-item label {
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.filter-item select {
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    width: 100%;
+}
+
+/* Herramientas */
+.tools-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tool-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.tool-button:hover {
+    background-color: #0056b3;
+}
+
+.tool-button.active {
+    background-color: #28a745;
+}
+
+/* Análisis Espacial */
+.spatial-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.spatial-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.spatial-item label {
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.buffer-controls,
+.neighbor-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.buffer-controls input,
+.neighbor-controls input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* Resultados del Análisis */
+.analysis-results {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.result-item {
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+.result-item.success {
+    border-left-color: #28a745;
+}
+
+.result-item.warning {
+    border-left-color: #ffc107;
+}
+
+.result-item.error {
+    border-left-color: #dc3545;
+}
+
+/* Estadísticas */
+.statistics {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.stat-label {
+    color: #495057;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Leyenda */
+.legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #dee2e6;
+}
+
+/* Mapa */
 #map {
-  height: 100vh;
-  width: 100%;
+    flex: 1;
+    height: 100vh;
+}
+
+/* Elementos del mapa */
+.buffer-layer {
+    stroke: #007bff;
+    stroke-width: 2;
+    fill: #007bff;
+    fill-opacity: 0.2;
+}
+
+.intersection-layer {
+    stroke: #28a745;
+    stroke-width: 2;
+    fill: #28a745;
+    fill-opacity: 0.3;
+}
+
+.neighbor-line {
+    stroke: #ffc107;
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+}
+
+.area-label {
+    background-color: white;
+    border: 1px solid #ced4da;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* Medición de distancia */
+.distance-tooltip {
+    background-color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    font-size: 0.9rem;
+}
+
+/* Clustering personalizado */
+.marker-cluster {
+    background-color: rgba(0, 123, 255, 0.6);
+    border: 2px solid #007bff;
+}
+
+.marker-cluster div {
+    background-color: rgba(0, 123, 255, 0.8);
+    color: white;
+    font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 40vh;
+    }
+
+    #map {
+        height: 60vh;
+    }
+
+    .buffer-controls,
+    .neighbor-controls {
+        flex-direction: column;
+    }
+}
+
+/* Estilos para los botones de análisis */
+.analysis-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.tool-button {
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tool-button:hover {
+    background-color: #34495e;
+    transform: translateY(-1px);
+}
+
+.tool-button:active {
+    transform: translateY(0);
+}
+
+/* Estilos para elementos resaltados */
+.custom-icon-highlight {
+    transition: all 0.3s ease;
+}
+
+.custom-icon-selected {
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.distance-label {
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Optimizaciones de rendimiento */
+.leaflet-marker-icon {
+    will-change: transform;
+}
+
+.leaflet-popup-content-wrapper {
+    will-change: transform;
+    contain: layout style paint;
+}
+
+/* Mejoras visuales para resultados */
+.analysis-results {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.analysis-results h4 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+}
+
+.analysis-results p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+/* Mejoras de accesibilidad */
+.tool-button:focus {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .tool-button:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+}
+
+/* Optimizaciones para dispositivos móviles */
+@media (max-width: 768px) {
+    .analysis-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .tool-button {
+        flex: 1 1 calc(50% - 5px);
+        font-size: 12px;
+        padding: 6px 8px;
+    }
 }
