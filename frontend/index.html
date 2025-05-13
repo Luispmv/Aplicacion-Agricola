@@ -79,29 +79,48 @@
       <!-- Buffer Dinámico -->
       <div class="control-section">
         <h3>Buffer Dinámico</h3>
-        <div class="buffer-controls">
-          <div class="buffer-item">
+        <div class="buffer-controls" style="display: flex; flex-direction: column; gap: 15px;">
+          <div class="buffer-item" style="display: flex; flex-direction: column; gap: 10px;">
             <label for="buffer-radius">Radio del Buffer (metros):</label>
-            <input type="number" id="buffer-radius" value="100" min="10" max="1000" step="10">
-            <div class="buffer-buttons">
-              <button id="decrease-buffer" class="tool-button">➖</button>
-              <button id="increase-buffer" class="tool-button">➕</button>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="buffer-radius" value="100" min="10" max="1000" step="10" style="flex: 1; padding: 5px;">
+              <div class="buffer-buttons" style="display: flex; gap: 5px;">
+                <button id="decrease-buffer" class="tool-button">➖</button>
+                <button id="increase-buffer" class="tool-button">➕</button>
+              </div>
             </div>
           </div>
-          <div class="buffer-item">
-            <button id="start-buffer" class="tool-button">🎯 Iniciar Buffer</button>
-            <button id="apply-buffer" class="tool-button" disabled>✨ Aplicar Buffer</button>
-            <button id="clear-buffer" class="tool-button" disabled>🗑️ Limpiar Buffer</button>
+          <div class="buffer-item" style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; gap: 10px; justify-content: space-between;">
+              <button id="start-buffer" class="tool-button" style="flex: 1;">🎯 Iniciar Buffer</button>
+              <button id="apply-buffer" class="tool-button" disabled style="flex: 1;">✨ Aplicar Buffer</button>
+              <button id="clear-buffer" class="tool-button" disabled style="flex: 1;">🗑️ Limpiar Buffer</button>
+            </div>
           </div>
           <!-- Resultados del Buffer -->
-          <div class="buffer-results" style="margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; display: none;">
-            <h4 style="margin: 0 0 10px 0;">Elementos en el Buffer:</h4>
-            <ul id="buffer-elements-list" style="list-style: none; padding: 0; margin: 0;">
-              <li>📡 Sensores: <span id="sensores-count">0</span></li>
-              <li>💧 Pozos: <span id="pozos-count">0</span></li>
-              <li>🌱 Parcelas: <span id="parcelas-count">0</span></li>
-              <li>💦 Zonas de Riego: <span id="zonas-riego-count">0</span></li>
-              <li>🌾 Tipos de Cultivo: <span id="tipos-cultivo-count">0</span></li>
+          <div class="buffer-results" style="display: none; flex-direction: column; gap: 10px; padding: 15px; background-color: #f5f5f5; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0; color: #333; font-size: 16px;">Elementos en el Buffer:</h4>
+            <ul id="buffer-elements-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+              <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span>📡 Sensores:</span>
+                <span id="sensores-count" style="font-weight: bold;">0</span>
+              </li>
+              <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span>💧 Pozos:</span>
+                <span id="pozos-count" style="font-weight: bold;">0</span>
+              </li>
+              <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span>🌱 Parcelas:</span>
+                <span id="parcelas-count" style="font-weight: bold;">0</span>
+              </li>
+              <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span>💦 Zonas de Riego:</span>
+                <span id="zonas-riego-count" style="font-weight: bold;">0</span>
+              </li>
+              <li style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span>🌾 Tipos de Cultivo:</span>
+                <span id="tipos-cultivo-count" style="font-weight: bold;">0</span>
+              </li>
             </ul>
           </div>
         </div>

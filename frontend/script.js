@@ -429,7 +429,8 @@ function findElementsInBuffer() {
   });
 
   // Mostrar el panel de resultados
-  document.querySelector('.buffer-results').style.display = 'block';
+  const bufferResults = document.querySelector('.buffer-results');
+  bufferResults.style.display = 'flex';
 
   // Mostrar cantidad total de elementos encontrados
   const total = elementsInBuffer.size;
