@@ -829,7 +829,7 @@ document.getElementById('cultivo-select').addEventListener('change', actualizarB
 document.getElementById('calculate-centroid').addEventListener('click', calcularCentroide);
 document.getElementById('clear-centroid').addEventListener('click', limpiarCentroide);
 
-// Variables para la zona de intersección
+// Variables para la intersección
 let drawingPolygon = false;
 let currentPolygon = null;
 let polygon1 = null;
@@ -837,87 +837,24 @@ let polygon2 = null;
 let startPoint = null;
 let currentSquare = null;
 let isDrawing = false;
-let intersectionLayer = null;
 
-// Función para crear un cuadrado a partir de dos puntos
-function createSquareFromPoints(start, end) {
-  // Calcular los puntos del cuadrado
-  const latDiff = end.lat - start.lat;
-  const lngDiff = end.lng - start.lng;
+// Función para iniciar el dibujo
+function startDrawing(polygonNumber) {
+  drawingPolygon = true;
+  currentPolygon = polygonNumber;
+  map.getContainer().style.cursor = 'crosshair';
   
-  // Crear un cuadrado usando las diferencias más grandes para mantener la proporción
-  const maxDiff = Math.max(Math.abs(latDiff), Math.abs(lngDiff));
-  const signLat = latDiff >= 0 ? 1 : -1;
-  const signLng = lngDiff >= 0 ? 1 : -1;
+  // Deshabilitar controles del mapa
+  map.dragging.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.scrollWheelZoom.disable();
+  map.boxZoom.disable();
+  map.keyboard.disable();
+  if (map.tap) map.tap.disable();
 
-  // Crear las coordenadas en sentido horario (importante para GeoJSON)
-  const coordinates = [
-    [start.lng, start.lat], // Punto inicial
-    [start.lng + signLng * maxDiff, start.lat], // Punto derecho
-    [start.lng + signLng * maxDiff, start.lat + signLat * maxDiff], // Punto diagonal
-    [start.lng, start.lat + signLat * maxDiff], // Punto superior
-    [start.lng, start.lat] // Cerrar el polígono volviendo al punto inicial
-  ];
-
-  // Crear un Feature GeoJSON válido con un array anidado de coordenadas
-  const polygon = {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [coordinates]
-    }
-  };
-
-  // Verificar que el polígono sea válido
-  console.log('Polígono creado:', JSON.stringify(polygon));
-  return polygon;
-}
-
-// Función para dibujar el polígono en el mapa
-function drawPolygon(start, end, isFirstPolygon) {
-  const square = createSquareFromPoints(start, end);
-  const color = isFirstPolygon ? '#0000FF' : '#FF0000';
-  const opacity = 0.3;
-
-  // Crear la capa de Leaflet
-  const layer = L.geoJSON(square, {
-    style: {
-      color: color,
-      weight: 2,
-      fillColor: color,
-      fillOpacity: opacity
-    }
-  }).addTo(map);
-
-  // Devolver un objeto con la capa y una copia de la geometría
-  return {
-    layer: layer,
-    geometry: JSON.parse(JSON.stringify(square.geometry)) // Crear una copia limpia de la geometría
-  };
-}
-
-// Función para mostrar notificaciones al usuario
-function showStatus(message, duration = 3000) {
-  const statusDiv = document.createElement('div');
-  statusDiv.className = 'status-message';
-  statusDiv.textContent = message;
-  statusDiv.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 1000;
-  `;
-  
-  document.body.appendChild(statusDiv);
-  
-  setTimeout(() => {
-    statusDiv.remove();
-  }, duration);
+  // Deshabilitar el botón actual
+  document.getElementById(`start-polygon${polygonNumber}`).disabled = true;
 }
 
 // Función para calcular la intersección
@@ -928,12 +865,8 @@ function calculateIntersection() {
   }
 
   try {
-    // Obtener las geometrías de los polígonos
-    const poly1 = turf.polygon([polygon1.geometry.coordinates[0]]);
-    const poly2 = turf.polygon([polygon2.geometry.coordinates[0]]);
-
-    // Verificar si los polígonos intersectan
-    const intersectan = turf.booleanIntersects(poly1, poly2);
+    // Verificar intersección
+    const intersectan = turf.booleanIntersects(polygon1.geometry, polygon2.geometry);
 
     if (intersectan) {
       showStatus('¡Los polígonos intersectan! 🎯', 3000);
@@ -962,11 +895,149 @@ function calculateIntersection() {
         fillOpacity: 0.3
       });
     }
-
   } catch (error) {
     console.error('Error al verificar la intersección:', error);
     showStatus('Error al verificar la intersección', 3000);
   }
+}
+
+// Función para limpiar todo
+function clearIntersection() {
+  if (polygon1) {
+    map.removeLayer(polygon1.layer);
+    polygon1 = null;
+  }
+  if (polygon2) {
+    map.removeLayer(polygon2.layer);
+    polygon2 = null;
+  }
+
+  // Restablecer interfaz
+  document.getElementById('start-polygon1').disabled = false;
+  document.getElementById('start-polygon2').disabled = true;
+  document.getElementById('clear-intersection').disabled = true;
+  
+  // Restablecer variables
+  drawingPolygon = false;
+  currentPolygon = null;
+  startPoint = null;
+  isDrawing = false;
+  
+  // Restablecer cursor y controles del mapa
+  map.getContainer().style.cursor = '';
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+  map.boxZoom.enable();
+  map.keyboard.enable();
+  if (map.tap) map.tap.enable();
+
+  showStatus('Área limpiada', 2000);
+}
+
+// Eventos del mapa para dibujo
+map.on('mousedown', function(e) {
+  if (!drawingPolygon) return;
+  
+  isDrawing = true;
+  startPoint = e.latlng;
+});
+
+map.on('mousemove', function(e) {
+  if (!isDrawing || !startPoint) return;
+
+  // Eliminar el cuadrado temporal anterior
+  if (currentSquare) {
+    map.removeLayer(currentSquare.layer);
+  }
+
+  // Dibujar nuevo cuadrado temporal
+  currentSquare = drawPolygon(startPoint, e.latlng, currentPolygon === 1);
+});
+
+map.on('mouseup', function(e) {
+  if (!isDrawing || !startPoint) return;
+
+  isDrawing = false;
+  
+  // Guardar el polígono final
+  if (currentPolygon === 1) {
+    if (polygon1) {
+      map.removeLayer(polygon1.layer);
+    }
+    polygon1 = currentSquare;
+    document.getElementById('start-polygon2').disabled = false;
+  } else {
+    if (polygon2) {
+      map.removeLayer(polygon2.layer);
+    }
+    polygon2 = currentSquare;
+    calculateIntersection();
+  }
+
+  currentSquare = null;
+  startPoint = null;
+  drawingPolygon = false;
+  map.getContainer().style.cursor = '';
+  
+  // Habilitar controles del mapa
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+  map.boxZoom.enable();
+  map.keyboard.enable();
+  if (map.tap) map.tap.enable();
+
+  document.getElementById('clear-intersection').disabled = false;
+});
+
+// Eventos para los botones
+document.getElementById('start-polygon1').addEventListener('click', function() {
+  startDrawing(1);
+});
+
+document.getElementById('start-polygon2').addEventListener('click', function() {
+  startDrawing(2);
+});
+
+document.getElementById('clear-intersection').addEventListener('click', clearIntersection);
+
+// Agregar evento para el botón de mostrar capas
+document.getElementById('show-layers').addEventListener('click', showLayersInIntersection);
+
+// Agregar estilos CSS para la animación
+const styleAnimation = document.createElement('style');
+styleAnimation.textContent = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+document.head.appendChild(styleAnimation);
+
+// Función para mostrar notificaciones al usuario
+function showStatus(message, duration = 3000) {
+  const statusDiv = document.createElement('div');
+  statusDiv.className = 'status-message';
+  statusDiv.textContent = message;
+  statusDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+  `;
+  
+  document.body.appendChild(statusDiv);
+  
+  setTimeout(() => {
+    statusDiv.remove();
+  }, duration);
 }
 
 // Función para mostrar las capas en la intersección
@@ -1141,137 +1212,55 @@ function clearHighlights() {
   highlightedElements.clear();
 }
 
-// Función para iniciar el dibujo
-function startDrawing(polygonNumber) {
-  drawingPolygon = true;
-  currentPolygon = polygonNumber;
-  map.getContainer().style.cursor = 'crosshair';
+// Función para crear un cuadrado a partir de dos puntos
+function createSquareFromPoints(start, end) {
+  // Calcular los puntos del cuadrado
+  const latDiff = end.lat - start.lat;
+  const lngDiff = end.lng - start.lng;
   
-  // Deshabilitar controles del mapa
-  map.dragging.disable();
-  map.touchZoom.disable();
-  map.doubleClickZoom.disable();
-  map.scrollWheelZoom.disable();
-  map.boxZoom.disable();
-  map.keyboard.disable();
-  if (map.tap) map.tap.disable();
+  // Crear un cuadrado usando las diferencias más grandes para mantener la proporción
+  const maxDiff = Math.max(Math.abs(latDiff), Math.abs(lngDiff));
+  const signLat = latDiff >= 0 ? 1 : -1;
+  const signLng = lngDiff >= 0 ? 1 : -1;
 
-  // Deshabilitar el botón actual
-  document.getElementById(`start-polygon${polygonNumber}`).disabled = true;
+  // Crear las coordenadas en sentido horario
+  const coordinates = [
+    [start.lng, start.lat],
+    [start.lng + signLng * maxDiff, start.lat],
+    [start.lng + signLng * maxDiff, start.lat + signLat * maxDiff],
+    [start.lng, start.lat + signLat * maxDiff],
+    [start.lng, start.lat]
+  ];
+
+  // Crear un Feature GeoJSON válido
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coordinates]
+    }
+  };
 }
 
-// Eventos del mapa para dibujo
-map.on('mousedown', function(e) {
-  if (!drawingPolygon) return;
-  
-  isDrawing = true;
-  startPoint = e.latlng;
-});
+// Función para dibujar el polígono en el mapa
+function drawPolygon(start, end, isFirstPolygon) {
+  const square = createSquareFromPoints(start, end);
+  const color = isFirstPolygon ? '#0000FF' : '#FF0000';
+  const opacity = 0.3;
 
-map.on('mousemove', function(e) {
-  if (!isDrawing || !startPoint) return;
-
-  // Eliminar el cuadrado temporal anterior
-  if (currentSquare) {
-    map.removeLayer(currentSquare.layer);
-  }
-
-  // Dibujar nuevo cuadrado temporal
-  currentSquare = drawPolygon(startPoint, e.latlng, currentPolygon === 1);
-});
-
-map.on('mouseup', function(e) {
-  if (!isDrawing || !startPoint) return;
-
-  isDrawing = false;
-  
-  // Guardar el polígono final
-  if (currentPolygon === 1) {
-    if (polygon1) {
-      map.removeLayer(polygon1.layer);
+  // Crear la capa de Leaflet
+  const layer = L.geoJSON(square, {
+    style: {
+      color: color,
+      weight: 2,
+      fillColor: color,
+      fillOpacity: opacity
     }
-    polygon1 = currentSquare;
-    document.getElementById('start-polygon2').disabled = false;
-  } else {
-    if (polygon2) {
-      map.removeLayer(polygon2.layer);
-    }
-    polygon2 = currentSquare;
-    calculateIntersection();
-  }
+  }).addTo(map);
 
-  currentSquare = null;
-  startPoint = null;
-  drawingPolygon = false;
-  map.getContainer().style.cursor = '';
-  
-  // Habilitar controles del mapa
-  map.dragging.enable();
-  map.touchZoom.enable();
-  map.doubleClickZoom.enable();
-  map.scrollWheelZoom.enable();
-  map.boxZoom.enable();
-  map.keyboard.enable();
-  if (map.tap) map.tap.enable();
-
-  document.getElementById('clear-intersection').disabled = false;
-});
-
-// Eventos para los botones
-document.getElementById('start-polygon1').addEventListener('click', function() {
-  startDrawing(1);
-});
-
-document.getElementById('start-polygon2').addEventListener('click', function() {
-  startDrawing(2);
-});
-
-document.getElementById('clear-intersection').addEventListener('click', clearIntersection);
-
-// Agregar evento para el botón de mostrar capas
-document.getElementById('show-layers').addEventListener('click', showLayersInIntersection);
-
-// Agregar estilos CSS para la animación
-const styleAnimation = document.createElement('style');
-styleAnimation.textContent = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-`;
-document.head.appendChild(styleAnimation);
-
-// Función para limpiar todo
-function clearIntersection() {
-  if (polygon1) {
-    map.removeLayer(polygon1.layer);
-    polygon1 = null;
-  }
-  if (polygon2) {
-    map.removeLayer(polygon2.layer);
-    polygon2 = null;
-  }
-
-  // Restablecer interfaz
-  document.getElementById('start-polygon1').disabled = false;
-  document.getElementById('start-polygon2').disabled = true;
-  document.getElementById('clear-intersection').disabled = true;
-  
-  // Restablecer variables
-  drawingPolygon = false;
-  currentPolygon = null;
-  startPoint = null;
-  isDrawing = false;
-  
-  // Restablecer cursor y controles del mapa
-  map.getContainer().style.cursor = '';
-  map.dragging.enable();
-  map.touchZoom.enable();
-  map.doubleClickZoom.enable();
-  map.scrollWheelZoom.enable();
-  map.boxZoom.enable();
-  map.keyboard.enable();
-  if (map.tap) map.tap.enable();
-
-  showStatus('Área limpiada', 2000);
+  return {
+    layer: layer,
+    geometry: square.geometry
+  };
 }
