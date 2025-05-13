@@ -125,6 +125,36 @@
           </div>
         </div>
       </div>
+
+      <!-- Distancia entre Pozos y Sensores -->
+      <div class="control-section">
+        <h3>Distancia Pozos y Sensores</h3>
+        <div class="distance-controls" style="display: flex; flex-direction: column; gap: 15px;">
+          <div class="distance-item" style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="start-distance" class="tool-button">📏 Iniciar Medición</button>
+            <button id="clear-distance" class="tool-button" disabled>🗑️ Limpiar Medición</button>
+          </div>
+          
+          <!-- Resultados de la Medición -->
+          <div class="distance-results" style="display: none; flex-direction: column; gap: 10px; padding: 15px; background-color: #f5f5f5; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0; color: #333; font-size: 16px;">Puntos Seleccionados:</h4>
+            <div id="punto1" style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Punto 1:</span>
+              <span id="punto1-info" style="font-weight: bold;">No seleccionado</span>
+            </div>
+            <div id="punto2" style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Punto 2:</span>
+              <span id="punto2-info" style="font-weight: bold;">No seleccionado</span>
+            </div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+              <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span>Distancia:</span>
+                <span id="distance-value" style="font-weight: bold; color: #2196F3;">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Mapa -->

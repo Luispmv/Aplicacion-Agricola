@@ -543,3 +543,162 @@ highlightStyle.textContent = `
   }
 `;
 document.head.appendChild(highlightStyle);
+
+// Variables para medición de distancia
+let medicionActiva = false;
+let puntosSeleccionados = [];
+let lineaMedicion = null;
+
+// Función para iniciar medición
+function iniciarMedicion() {
+  medicionActiva = true;
+  document.getElementById('start-distance').disabled = true;
+  document.getElementById('clear-distance').disabled = false;
+  map.getContainer().style.cursor = 'crosshair';
+  
+  // Mostrar el panel de resultados
+  document.querySelector('.distance-results').style.display = 'flex';
+
+  // Deshabilitar controles del mapa
+  map.dragging.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.scrollWheelZoom.disable();
+  map.boxZoom.disable();
+  map.keyboard.disable();
+  if (map.tap) map.tap.disable();
+
+  // Habilitar eventos de clic solo en pozos y sensores
+  ['pozos', 'sensores'].forEach(tipo => {
+    capas[tipo].elementos.forEach(elemento => {
+      elemento.on('click', manejarSeleccionPunto);
+    });
+  });
+}
+
+// Función para manejar la selección de puntos
+function manejarSeleccionPunto(e) {
+  if (!medicionActiva) return;
+
+  const elemento = e.target;
+  const tipo = elemento.feature.properties.tipo || 
+               (capas.pozos.elementos.includes(elemento) ? 'Pozo' : 'Sensor');
+  const nombre = elemento.feature.properties.nombre || 'Sin nombre';
+
+  puntosSeleccionados.push({
+    elemento: elemento,
+    tipo: tipo,
+    nombre: nombre,
+    latlng: elemento.getLatLng()
+  });
+
+  // Actualizar información en el panel
+  const index = puntosSeleccionados.length;
+  document.getElementById(`punto${index}-info`).textContent = 
+    `${tipo}: ${nombre}`;
+
+  // Resaltar el punto seleccionado
+  elemento.setIcon(L.divIcon({
+    className: 'selected-point',
+    html: `<div style="background-color: #FF4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid yellow; display: flex; align-items: center; justify-content: center;">
+           ${tipo === 'Pozo' ? '💧' : '📡'}</div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  }));
+
+  // Si ya tenemos dos puntos, calcular la distancia
+  if (puntosSeleccionados.length === 2) {
+    calcularDistancia();
+  }
+}
+
+// Función para calcular la distancia
+function calcularDistancia() {
+  const punto1 = puntosSeleccionados[0].latlng;
+  const punto2 = puntosSeleccionados[1].latlng;
+
+  // Eliminar línea anterior si existe
+  if (lineaMedicion) {
+    map.removeLayer(lineaMedicion);
+  }
+
+  // Dibujar línea entre puntos
+  lineaMedicion = L.polyline([punto1, punto2], {
+    color: '#FF4444',
+    weight: 3,
+    dashArray: '5, 10'
+  }).addTo(map);
+
+  // Calcular distancia usando Turf.js
+  const from = turf.point([punto1.lng, punto1.lat]);
+  const to = turf.point([punto2.lng, punto2.lat]);
+  const distancia = turf.distance(from, to, { units: 'kilometers' });
+
+  // Mostrar distancia en el formato más apropiado
+  let distanciaTexto;
+  if (distancia < 1) {
+    distanciaTexto = `${Math.round(distancia * 1000)} metros`;
+  } else {
+    distanciaTexto = `${distancia.toFixed(2)} kilómetros`;
+  }
+
+  document.getElementById('distance-value').textContent = distanciaTexto;
+
+  // Centrar el mapa para mostrar ambos puntos
+  const bounds = L.latLngBounds([punto1, punto2]);
+  map.fitBounds(bounds, { padding: [50, 50] });
+}
+
+// Función para limpiar medición
+function limpiarMedicion() {
+  // Eliminar línea de medición
+  if (lineaMedicion) {
+    map.removeLayer(lineaMedicion);
+  }
+
+  // Restaurar iconos originales
+  puntosSeleccionados.forEach(punto => {
+    const tipo = punto.tipo === 'Pozo' ? 'pozos' : 'sensores';
+    punto.elemento.setIcon(L.divIcon({
+      className: 'custom-icon',
+      html: `<div style="background-color: ${capas[tipo].color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;">
+             ${punto.tipo === 'Pozo' ? '💧' : '📡'}</div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    }));
+  });
+
+  // Restablecer variables
+  medicionActiva = false;
+  puntosSeleccionados = [];
+  lineaMedicion = null;
+
+  // Restablecer interfaz
+  document.getElementById('start-distance').disabled = false;
+  document.getElementById('clear-distance').disabled = true;
+  document.getElementById('punto1-info').textContent = 'No seleccionado';
+  document.getElementById('punto2-info').textContent = 'No seleccionado';
+  document.getElementById('distance-value').textContent = '-';
+  document.querySelector('.distance-results').style.display = 'none';
+  map.getContainer().style.cursor = '';
+
+  // Habilitar controles del mapa
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+  map.boxZoom.enable();
+  map.keyboard.enable();
+  if (map.tap) map.tap.enable();
+
+  // Remover eventos de clic
+  ['pozos', 'sensores'].forEach(tipo => {
+    capas[tipo].elementos.forEach(elemento => {
+      elemento.off('click', manejarSeleccionPunto);
+    });
+  });
+}
+
+// Agregar eventos a los botones
+document.getElementById('start-distance').addEventListener('click', iniciarMedicion);
+document.getElementById('clear-distance').addEventListener('click', limpiarMedicion);
