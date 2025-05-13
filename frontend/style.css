@@ -89,26 +89,56 @@ body {
 .filter-controls {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
+    padding: 10px;
 }
 
 .filter-item {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
 }
 
 .filter-item label {
-    color: #495057;
     font-size: 0.9rem;
+    color: #495057;
 }
 
 .filter-item select {
     padding: 8px;
     border: 1px solid #ced4da;
     border-radius: 4px;
+    background-color: white;
     font-size: 0.9rem;
     width: 100%;
+}
+
+.filter-item select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.filter-item button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+}
+
+#aplicar-filtros {
+    background-color: #28a745;
+}
+
+#aplicar-filtros:hover {
+    background-color: #218838;
+}
+
+#restablecer-filtros {
+    background-color: #6c757d;
+}
+
+#restablecer-filtros:hover {
+    background-color: #5a6268;
 }
 
 /* Herramientas */

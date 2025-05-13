@@ -23,164 +23,56 @@
         <h2>Panel de Control</h2>
       </div>
       
-      <!-- Búsqueda -->
-      <div class="control-section">
-        <h3>Búsqueda</h3>
-        <div class="search-controls">
-          <input type="text" id="search-input" placeholder="Buscar por nombre o ID...">
-        </div>
-      </div>
-
-      <!-- Control de Capas -->
+      <!-- Capas -->
       <div class="control-section">
         <h3>Capas</h3>
         <div class="layer-controls">
           <div class="layer-item">
             <input type="checkbox" id="sensores" checked>
-            <label for="sensores">Sensores 📡</label>
+            <label for="sensores">📡 Sensores</label>
           </div>
           <div class="layer-item">
             <input type="checkbox" id="pozos" checked>
-            <label for="pozos">Pozos 💧</label>
+            <label for="pozos">💧 Pozos</label>
           </div>
           <div class="layer-item">
             <input type="checkbox" id="parcelas" checked>
-            <label for="parcelas">Parcelas 🌱</label>
+            <label for="parcelas">🌱 Parcelas</label>
           </div>
           <div class="layer-item">
             <input type="checkbox" id="zonas-riego" checked>
-            <label for="zonas-riego">Zonas de Riego</label>
+            <label for="zonas-riego">💦 Zonas de Riego</label>
           </div>
           <div class="layer-item">
             <input type="checkbox" id="tipos-cultivo" checked>
-            <label for="tipos-cultivo">Tipos de Cultivo</label>
+            <label for="tipos-cultivo">🌾 Tipos de Cultivo</label>
           </div>
         </div>
       </div>
 
       <!-- Filtros -->
       <div class="control-section">
-        <h3>Filtros</h3>
+        <h3>Filtrar Sensores</h3>
         <div class="filter-controls">
+          <!-- Estado -->
           <div class="filter-item">
             <label for="estado-filter">Estado:</label>
             <select id="estado-filter">
               <option value="todos">Todos</option>
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
-              <option value="mantenimiento">En Mantenimiento</option>
             </select>
           </div>
+
+          <!-- Botón de Búsqueda -->
           <div class="filter-item">
-            <label for="tipo-cultivo-filter">Tipo de Cultivo:</label>
-            <select id="tipo-cultivo-filter">
-              <option value="todos">Todos</option>
-              <option value="maiz">Maíz</option>
-              <option value="trigo">Trigo</option>
-              <option value="caña">Caña de Azúcar</option>
-              <option value="frijol">Frijol</option>
-              <option value="tomate">Tomate</option>
-              <option value="aguacate">Aguacate</option>
-              <option value="uva">Uva</option>
-              <option value="limon">Limón</option>
-              <option value="sandia">Sandía</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Herramientas -->
-      <div class="control-section">
-        <h3>Herramientas</h3>
-        <div class="tools-controls">
-          <button id="measure-distance" class="tool-button">📏 Medir Distancia</button>
-          <button id="toggle-clustering" class="tool-button">📍 Agrupar Puntos</button>
-        </div>
-      </div>
-
-      <!-- Análisis Espacial -->
-      <div class="control-section">
-        <h3>Análisis Espacial</h3>
-        <div class="spatial-controls">
-          <!-- Buffer -->
-          <div class="spatial-item">
-            <label for="buffer-radius">Radio de Buffer (metros):</label>
-            <div class="buffer-controls">
-              <input type="number" id="buffer-radius" value="100" min="10" max="1000" step="10">
-              <button id="create-buffer" class="tool-button">🔄 Crear Buffer</button>
-            </div>
-          </div>
-          
-          <!-- Vecinos -->
-          <div class="spatial-item">
-            <label for="neighbor-radius">Radio de Búsqueda (metros):</label>
-            <div class="neighbor-controls">
-              <input type="number" id="neighbor-radius" value="200" min="10" max="2000" step="10">
-              <button id="find-neighbors" class="tool-button">🎯 Buscar Vecinos</button>
-            </div>
+            <button id="aplicar-filtros" class="tool-button">🔍 Aplicar Filtro</button>
           </div>
 
-          <!-- Intersección -->
-          <div class="spatial-item">
-            <button id="analyze-intersection" class="tool-button">📊 Analizar Intersecciones</button>
+          <!-- Botón Restablecer -->
+          <div class="filter-item">
+            <button id="restablecer-filtros" class="tool-button">🔄 Restablecer</button>
           </div>
-
-          <!-- Área -->
-          <div class="spatial-item">
-            <button id="calculate-areas" class="tool-button">📐 Calcular Áreas</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Análisis Agrícola -->
-      <div class="control-section">
-        <h3>Análisis Agrícola</h3>
-        <div class="agricultural-controls">
-          <!-- Análisis de Riego -->
-          <div class="analysis-item">
-            <h4>Análisis de Riego</h4>
-            <button id="analyze-irrigation" class="tool-button">💧 Analizar Cobertura de Riego</button>
-            <button id="irrigation-efficiency" class="tool-button">📊 Eficiencia de Riego</button>
-          </div>
-
-          <!-- Análisis de Cultivos -->
-          <div class="analysis-item">
-            <h4>Análisis de Cultivos</h4>
-            <button id="crop-statistics" class="tool-button">📈 Estadísticas por Cultivo</button>
-            <button id="generate-report" class="tool-button">📋 Generar Reporte</button>
-          </div>
-
-          <!-- Gráficos -->
-          <div class="analysis-item">
-            <div id="charts-container">
-              <canvas id="irrigation-chart"></canvas>
-              <canvas id="crops-chart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resultados del Análisis -->
-      <div class="control-section">
-        <h3>Resultados</h3>
-        <div id="analysis-results" class="analysis-results">
-          <!-- Los resultados se mostrarán aquí -->
-        </div>
-      </div>
-
-      <!-- Estadísticas -->
-      <div class="control-section">
-        <h3>Estadísticas</h3>
-        <div id="statistics" class="statistics">
-          <!-- Las estadísticas se llenarán dinámicamente -->
-        </div>
-      </div>
-
-      <!-- Leyenda -->
-      <div class="control-section">
-        <h3>Leyenda</h3>
-        <div class="legend">
-          <!-- La leyenda se llenará dinámicamente -->
         </div>
       </div>
     </div>
