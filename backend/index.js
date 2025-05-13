@@ -64,6 +64,91 @@ app.get('/geo/tipos-cultivo', async (req, res) => {
   res.json(result.rows[0].geojson);
 });
 
+
+
+// =============================================
+// Endpoint para Sensores (GeoJSON)
+// =============================================
+app.get('/geo/sensores', async (req, res) => {
+  try {
+    const query = `
+      SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+          jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(ubicacion)::jsonb,
+            'properties', to_jsonb(s) - 'ubicacion'
+          )
+        )
+      ) AS geojson
+      FROM sensores s;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows[0].geojson);
+  } catch (err) {
+    console.error('Error al cargar sensores:', err);
+    res.status(500).json({ error: 'Error al obtener datos de sensores' });
+  }
+});
+
+// =============================================
+// Endpoint para Pozos (GeoJSON)
+// =============================================
+app.get('/geo/pozos', async (req, res) => {
+  try {
+    const query = `
+      SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+          jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(ubicacion)::jsonb,
+            'properties', to_jsonb(p) - 'ubicacion'
+          )
+        )
+      ) AS geojson
+      FROM pozos p;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows[0].geojson);
+  } catch (err) {
+    console.error('Error al cargar pozos:', err);
+    res.status(500).json({ error: 'Error al obtener datos de pozos' });
+  }
+});
+
+// =============================================
+// Endpoint para Parcelas (GeoJSON)
+// =============================================
+app.get('/geo/parcelas', async (req, res) => {
+  try {
+    const query = `
+      SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+          jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(ubicacion)::jsonb,
+            'properties', to_jsonb(parc) - 'ubicacion'
+          )
+        )
+      ) AS geojson
+      FROM parcelas parc;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows[0].geojson);
+  } catch (err) {
+    console.error('Error al cargar parcelas:', err);
+    res.status(500).json({ error: 'Error al obtener datos de parcelas' });
+  }
+});
+
+
+
+
+
+
 app.listen(3000, () => {
   console.log('Servidor backend corriendo en http://localhost:3000');
 });
